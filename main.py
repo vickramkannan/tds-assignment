@@ -13,6 +13,47 @@ import redis
 import jwt
 from pydantic import BaseModel, Field
 
+from fastapi import Query
+import os
+
+@app.get("/effective-config")
+async def effective_config(set: list[str] = Query(default=[])):
+    config = {
+        "port": 8000,
+        "workers": 1,
+        "debug": False,
+        "log_level": "info",
+        "api_key": "default-secret-000",
+    }
+
+    # config.development.yaml
+    config["port"] = 8732
+    config["log_level"] = "warning"
+
+    # .env
+    config["workers"] = 6
+
+    # OS env (APP_*)
+    if os.getenv("APP_WORKERS"):
+        config["workers"] = int(os.getenv("APP_WORKERS"))
+    if os.getenv("APP_API_KEY"):
+        config["api_key"] = os.getenv("APP_API_KEY")
+
+    # CLI overrides
+    for item in set:
+        if "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+
+        if key in ("port", "workers"):
+            config[key] = int(value)
+        elif key == "debug":
+            config[key] = value.lower() in ("true", "1", "yes", "on")
+        else:
+            config[key] = value
+
+    config["api_key"] = "****"
+    return config
 import config
 
 LLM_MODEL = "qwen2.5:0.5b"
