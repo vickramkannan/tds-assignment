@@ -4,19 +4,24 @@ import uuid
 import httpx
 import json
 import re
-from collections 
-import defaultdict, dequefrom typing 
-import Optionalfrom fastapi 
-import FastAPI, Request, Responsefrom fastapi.responses 
-import JSONResponsefrom prometheus_client 
-import Counter, generate_latest
+from collections import defaultdict, deque
+from typing import Optional
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
+from prometheus_client import Counter, generate_latest
 import redis
-import jwtfrom pydantic 
-import BaseModel, Field
+import jwt
+from pydantic import BaseModel, Field
 
 import config
 
-LLM_MODEL = "qwen2.5:0.5b"START_TIME = time.time()app = FastAPI()redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+LLM_MODEL = "qwen2.5:0.5b"
+
+START_TIME = time.time()
+
+app = FastAPI()
+
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 http_requests_total = Counter("http_requests_total", "Total HTTP Requests")logs_queue = deque(maxlen=100)
 
