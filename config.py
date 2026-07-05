@@ -7,7 +7,7 @@
 EMAIL = "22f3000616@ds.study.iitm.ac.in"
 
 # 2. Q1: CORS Allowed Origin
-Q1_ALLOWED_ORIGIN =  "https://dash-8yzo4n.example.com""
+Q1_ALLOWED_ORIGIN = "https://dash-8yzo4n.example.com"
 
 # 3. Q2: OAuth JWKS (Issuer, Audience, and Public Key)
 ISSUER = "https://idp.exam.local"
