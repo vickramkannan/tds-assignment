@@ -71,62 +71,52 @@ def safe_extract_json(s: str) -> dict:
 async def custom_middleware(request: Request, call_next):
     start_time = time.time()
     http_requests_total.inc()
-    
-req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-request.state.req_id = req_id
-
-logs_queue.append({
-    "level": "INFO",
-    "ts": time.time(),
-    "path": request.url.path,
-    "request_id": req_id
-})
-
-now = time.time()
-path = request.url.path.rstrip("/")
-if path == "": path = "/"
-origin = request.headers.get("Origin")
-
-response = None
-
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.req_id = req_id
+    logs_queue.append({
+        "level": "INFO",
+        "ts": time.time(),
+        "path": request.url.path,
+        "request_id": req_id
+    })
+    now = time.time()
+    path = request.url.path.rstrip("/")
+    if path == "": path = "/"
+        origin = request.headers.get("Origin")
+    response = None
 if path == "/orders":
     client_id = request.headers.get("X-Client-Id", "default")
-    if "flood" in client_id or client_id == "default":
-        if is_rate_limited(client_id, config.Q9_RATE_LIMIT, "q9"):
-            response = Response(status_code=429, headers={"Retry-After": "10"})
-
-if not response and path == "/ping":
-    client_id = request.headers.get("X-Client-Id", "default")
-    if is_rate_limited(client_id, config.Q10_RATE_LIMIT, "q10"):
+if "flood" in client_id or client_id == "default":
+    if is_rate_limited(client_id, config.Q9_RATE_LIMIT, "q9"):
         response = Response(status_code=429, headers={"Retry-After": "10"})
-
-if not response:
-    if request.method == "OPTIONS":
-        response = Response(status_code=204)
-    else:
-        try:
-            response = await call_next(request)
-        except Exception as e:
-            response = Response(status_code=500, content="Internal Server Error")
-
-process_time = time.time() - start_time
-response.headers["X-Request-ID"] = req_id
-response.headers["X-Process-Time"] = f"{process_time:.6f}"
-
-if origin:
-    if path == "/ping":
-        if origin == config.Q10_ALLOWED_ORIGIN or config.EXAM_PORTAL_ORIGIN in origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-    elif path == "/stats":
-        if origin == config.Q1_ALLOWED_ORIGIN or config.EXAM_PORTAL_ORIGIN in origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-    else:
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        
-response.headers["Access-Control-Allow-Methods"] = "*"
-response.headers["Access-Control-Allow-Headers"] = "*"
-response.headers["Access-Control-Expose-Headers"] = "*"
-return response
+        if not response and path == "/ping":
+            client_id = request.headers.get("X-Client-Id", "default")
+            if is_rate_limited(client_id, config.Q10_RATE_LIMIT, "q10"):
+                response = Response(status_code=429, headers={"Retry-After": "10"})
+                if not response:
+                    if request.method == "OPTIONS":
+                        response = Response(status_code=204)
+                    else:
+                        try:
+                            response = await call_next(request)
+                        except Exception as e:
+                            response = Response(status_code=500, content="Internal Server Error")
+                            process_time = time.time() - start_time
+                            response.headers["X-Request-ID"] = req_id
+                            response.headers["X-Process-Time"] = f"{process_time:.6f}"
+                            if origin:
+                                if path == "/ping":
+                                    if origin == config.Q10_ALLOWED_ORIGIN or config.EXAM_PORTAL_ORIGIN in origin:
+                                        response.headers["Access-Control-Allow-Origin"] = origin
+                                    elif path == "/stats":
+                                        if origin == config.Q1_ALLOWED_ORIGIN or config.EXAM_PORTAL_ORIGIN in origin:
+                                            response.headers["Access-Control-Allow-Origin"] = origin
+                                        else:
+                                            response.headers["Access-Control-Allow-Origin"] = "*"
+                                            response.headers["Access-Control-Allow-Methods"] = "*"
+                                            response.headers["Access-Control-Allow-Headers"] = "*"
+                                            response.headers["Access-Control-Expose-Headers"] = "*"
+        return response
 @app.get("/stats")
 async def stats(values: str = ""):
   nums = [int(x) for x in values.split(",") if x.strip()]
