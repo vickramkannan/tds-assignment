@@ -48,24 +48,23 @@ def is_rate_limited(client_id: str, limit: int, prefix: str) -> bool:
         return False
     def safe_extract_json(s: str) -> dict:
         s = s.strip()
+        
         if s.startswith("```"):
             newline_idx = s.find("\n")
         if newline_idx != -1:
             s = s[newline_idx:].strip()
-      if s.endswith("```"):
-    s = s[:-3].strip()
-
-try:
-    return json.loads(s)
-except Exception:
-    match = re.search(r'({.*})', s, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except Exception:
-            pass
-
-return {}
+        if s.endswith("```"):
+          s = s[:-3].strip()
+          try:
+              return json.loads(s)
+          except Exception:
+              match = re.search(r'({.*})', s, re.DOTALL)
+              if match:
+                  try:
+                      return json.loads(match.group(1))
+                  except Exception:
+                      pass
+           return {}
 
 @app.middleware("http")async def custom_middleware(request: Request, call_next):start_time = time.time()http_requests_total.inc()
 
