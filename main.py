@@ -46,7 +46,7 @@ def is_rate_limited(client_id: str, limit: int, prefix: str) -> bool:
     except Exception as e:
         print(f"Redis rate limit error: {e}", flush=True)
         return False
-            def safe_extract_json(s: str) -> dict:
+    def safe_extract_json(s: str) -> dict:
     s = s.strip()
     if s.startswith("```"):
         newline_idx = s.find("\n")
