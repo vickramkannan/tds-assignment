@@ -380,45 +380,9 @@ async def extract(request: Request):
         if not text:
             return Invoice().dict()
 
-        date_match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
-        date = date_match.group(1) if date_match else ""
-
-        curr_match = re.search(
-            r'\b(USD|EUR|GBP|INR|CAD|AUD|JPY|CHF)\b',
-            text
-        )
-        currency = curr_match.group(1).upper() if curr_match else ""
-
-        vendor_match = re.search(r'([A-Za-z0-9]+-[A-Z0-9]{4})', text)
-        vendor = vendor_match.group(1) if vendor_match else ""
-
-        amount = 0.0
-
-        amount_match = re.search(
-            r'(?:USD|EUR|GBP|INR|CAD|AUD|JPY|CHF|\$|€|£)\s*(\d+(?:\.\d{1,2})?)',
-            text,
-            re.IGNORECASE
-        )
-
-        if amount_match:
-            amount = float(amount_match.group(1))
-        else:
-            fallback_match = re.search(
-                r'(?:total|amount|due|pay|price|sum)\s*:?\s*(\d+(?:\.\d{1,2})?)',
-                text,
-                re.IGNORECASE
-            )
-
-            if fallback_match:
-                amount = float(fallback_match.group(1))
+        # ... all your extraction code ...
 
         if not vendor or not amount or not currency or not date:
-            prompt = (
-                "Extract vendor, amount, currency (3-letter), and payment "
-                "date (YYYY-MM-DD) from this text. Return ONLY a JSON object "
-                f"with those exact keys. Text: {text}"
-            )
-
             try:
                 async with httpx.AsyncClient() as client:
                     req = {
@@ -444,13 +408,10 @@ async def extract(request: Request):
 
                     if not vendor:
                         vendor = parsed.get("vendor", "")
-
                     if not amount:
                         amount = float(parsed.get("amount", 0.0))
-
                     if not currency:
                         currency = parsed.get("currency", "").upper()
-
                     if not date:
                         date = parsed.get("date", "")
 
@@ -464,9 +425,8 @@ async def extract(request: Request):
             "date": date
         }
 
-        except Exception:
+    except Exception:
         return Invoice().dict()
-
 
 @app.post("/orders")
 async def create_order(request: Request):
