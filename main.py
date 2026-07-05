@@ -82,7 +82,8 @@ async def custom_middleware(request: Request, call_next):
         "request_id": req_id
     })
 
-        now = time.time()
+    now = time.time()
+
     path = request.url.path.rstrip("/")
     if path == "":
         path = "/"
@@ -130,14 +131,12 @@ async def custom_middleware(request: Request, call_next):
                 or config.EXAM_PORTAL_ORIGIN in origin
             ):
                 response.headers["Access-Control-Allow-Origin"] = origin
-
         elif path == "/stats":
             if (
                 origin == config.Q1_ALLOWED_ORIGIN
                 or config.EXAM_PORTAL_ORIGIN in origin
             ):
                 response.headers["Access-Control-Allow-Origin"] = origin
-
         else:
             response.headers["Access-Control-Allow-Origin"] = "*"
 
@@ -146,7 +145,7 @@ async def custom_middleware(request: Request, call_next):
     response.headers["Access-Control-Expose-Headers"] = "*"
 
     return response
-
+    
 @app.get("/stats")
 async def stats(values: str = ""):
     nums = [int(x) for x in values.split(",") if x.strip()]
@@ -165,7 +164,6 @@ async def stats(values: str = ""):
         "max": max(nums),
         "mean": round(sum(nums) / len(nums), 6)
     }
-
 
 @app.post("/verify")
 async def verify_token(request: Request):
