@@ -13,6 +13,14 @@ import redis
 import jwt
 from pydantic import BaseModel, Field
 
+import config
+
+LLM_MODEL = "qwen2.5:0.5b"
+
+START_TIME = time.time()
+
+app = FastAPI()
+
 from fastapi import Query
 import os
 
@@ -54,14 +62,7 @@ async def effective_config(set: list[str] = Query(default=[])):
 
     config["api_key"] = "****"
     return config
-import config
-
-LLM_MODEL = "qwen2.5:0.5b"
-
-START_TIME = time.time()
-
-app = FastAPI()
-
+    
 redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 http_requests_total = Counter("http_requests_total", "Total HTTP Requests")
