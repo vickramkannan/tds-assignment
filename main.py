@@ -413,20 +413,58 @@ class Invoice(BaseModel):
     date: str = Field(default="")
 
 
-@app.post("/extract")
+@app.post("/extract", response_model=Invoice)
 async def extract(request: Request):
     try:
         body = await request.json()
-        text = body.get("text", "")
+        text = body.get("text", "").strip()
 
         if not text:
-            return Invoice().dict()
+            return Invoice()
 
-        # ... all your extraction code ...
+        # Initialize fields
+        vendor = ""
+        amount = 0.0
+        currency = ""
+        date = ""
 
-        if not vendor or not amount or not currency or not date:
+        # ---------- Regex extraction ----------
+
+        # Vendor
+        patterns = [
+            r'([A-Za-z]+-[A-Z0-9]{4}(?:\s+[A-Za-z.& ]+)*)',
+            r'Vendor\s*:\s*([^\n,]+)',
+            r'Supplier\s*:\s*([^\n,]+)',
+            r'Bill\s+From\s*:\s*([^\n,]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                vendor = match.group(1).strip()
+                break
+
+        # Amount
+        m = re.search(r'(\d+(?:\.\d{1,2})?)', text)
+        if m:
+            amount = float(m.group(1))
+
+        # Currency
+        m = re.search(r'\b(USD|EUR|GBP|INR)\b', text, re.IGNORECASE)
+        if m:
+            currency = m.group(1).upper()
+
+        # Date
+        m = re.search(r'(2026-\d{2}-\d{2})', text)
+        if m:
+            date = m.group(1)
+
+        # ---------- LLM fallback ----------
+
+        if not vendor or amount == 0 or not currency or not date:
             try:
                 async with httpx.AsyncClient() as client:
+
                     req = {
                         "model": LLM_MODEL,
                         "messages": [
@@ -449,26 +487,32 @@ async def extract(request: Request):
                     parsed = safe_extract_json(content)
 
                     if not vendor:
-                        vendor = parsed.get("vendor", "")
-                    if not amount:
-                        amount = float(parsed.get("amount", 0.0))
+                        vendor = parsed.get("vendor", "").strip()
+
+                    if amount == 0:
+                        try:
+                            amount = float(parsed.get("amount", 0))
+                        except:
+                            amount = 0.0
+
                     if not currency:
-                        currency = parsed.get("currency", "").upper()
+                        currency = parsed.get("currency", "").strip().upper()
+
                     if not date:
-                        date = parsed.get("date", "")
+                        date = parsed.get("date", "").strip()
 
             except Exception:
                 pass
 
-        return {
-            "vendor": vendor,
-            "amount": amount,
-            "currency": currency,
-            "date": date
-        }
+        return Invoice(
+            vendor=vendor,
+            amount=amount,
+            currency=currency,
+            date=date
+        )
 
     except Exception:
-        return Invoice().dict()
+        return Invoice()
 
 @app.post("/orders")
 async def create_order(request: Request):
