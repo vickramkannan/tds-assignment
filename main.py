@@ -67,8 +67,11 @@ def safe_extract_json(s: str) -> dict:
 
     return {}
 
-@app.middleware("http")async def custom_middleware(request: Request, call_next):start_time = time.time()http_requests_total.inc()
-
+@app.middleware("http")
+async def custom_middleware(request: Request, call_next):
+    start_time = time.time()
+    http_requests_total.inc()
+    
 req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
 request.state.req_id = req_id
 
