@@ -27,8 +27,26 @@ http_requests_total = Counter("http_requests_total", "Total HTTP Requests")
 
 logs_queue = deque(maxlen=100)
 
-def is_rate_limited(client_id: str, limit: int, prefix: str) -> bool:key = f"ratelimit:{prefix}:{client_id}"now = time.time()try:pipe = redis_client.pipeline()pipe.zremrangebyscore(key, 0, now - 10)pipe.zadd(key, {str(now): now})pipe.zcard(key)pipe.expire(key, 12)res = pipe.execute()count = res[2]return count > limitexcept Exception as e:print(f"Redis rate limit error: {e}", flush=True)return False
+def is_rate_limited(client_id: str, limit: int, prefix: str) -> bool:
+    key = f"ratelimit:{prefix}:{client_id}"
+    now = time.time()
 
+    try:
+        pipe = redis_client.pipeline()
+        pipe.zremrangebyscore(key, 0, now - 10)
+        pipe.zadd(key, {str(now): now})
+        pipe.zcard(key)
+        pipe.expire(key, 12)
+
+        res = pipe.execute()
+        count = res[2]
+
+        return count > limit
+
+    except Exception as e:
+        print(f"Redis rate limit error: {e}", flush=True)
+        return False
+            
 def safe_extract_json(s: str) -> dict:s = s.strip()if s.startswith(""):
         newline_idx = s.find("\n")
         if newline_idx != -1:
